@@ -39,19 +39,34 @@ function Cell:render_output(buf)
 		return
 	end
 
+	local hl_group = "Special"
+
 	local virt_lines = {
 		{ { string.format("cell_id: %d, range: {%d, %d}", self.id, self.range[1], self.range[2]), "Comment" } },
-		{ { string.format("Out[%s]:", self.execution_count ~= vim.NIL and self.execution_count or " "), "Normal" } },
+		{ { string.format("Out[%s]:", self.execution_count ~= vim.NIL and self.execution_count or " "), hl_group } },
 	}
 	local images = {}
 	for _, output in ipairs(self.outputs) do
 		if output.output_type == "execute_result" then
 			for line in tostring(output.data["text/plain"]):gmatch("([^" .. "\n" .. "]+)") do
-				table.insert(virt_lines, { { line, "Normal" } })
+				table.insert(virt_lines, { { line, hl_group } })
 			end
 		elseif output.output_type == "stream" then
-			for line in tostring(output.text):gmatch("([^" .. "\n" .. "]+)") do
-				table.insert(virt_lines, { { line, "Normal" } })
+			if #virt_lines == 2 then
+				table.insert(virt_lines, { { "", hl_group } })
+			end
+			local line = virt_lines[#virt_lines][1][1]
+			for char in tostring(output.text):gmatch(".") do
+				if char == "\n" then
+					line = ""
+					table.insert(virt_lines, { { line, hl_group } })
+				elseif char == "\r" then
+					line = ""
+					virt_lines[#virt_lines] = { { line, hl_group } }
+				else
+					line = line .. char
+					virt_lines[#virt_lines] = { { line, hl_group } }
+				end
 			end
 		elseif output.output_type == "display_data" then
 			local base64_str = output.data["image/png"]
