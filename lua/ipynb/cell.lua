@@ -34,6 +34,47 @@ function Cell:new(cell_data)
 	return cell
 end
 
+local ansi_to_hl = {
+	["0;31"] = "ErrorMsg", -- Red
+	["0;32"] = "Character", -- Green
+	["43"] = "CurSearch", -- Yellow background
+	["49"] = "Normal", -- Default background
+	["0"] = "Normal", -- Reset
+}
+
+local esc_pattern = "\x1b%[([0-9;]*)m"
+
+local function process_line(line)
+	local virtual_line = {}
+	local last_end = 1
+	local current_hl = "Normal" -- Default highlight group
+
+	-- Iterate through all escape sequences in the line
+	for start, codes, finish in line:gmatch("()" .. esc_pattern .. "()") do
+		-- Append the text before the escape code with the current highlight
+		if last_end < start then
+			table.insert(virtual_line, {
+				line:sub(last_end, start - 1),
+				current_hl,
+			})
+		end
+
+		-- Update the current highlight group
+		current_hl = ansi_to_hl[codes] or "Normal"
+		last_end = finish
+	end
+
+	-- Append remaining text after the last escape code
+	if last_end <= #line then
+		table.insert(virtual_line, {
+			line:sub(last_end),
+			current_hl,
+		})
+	end
+
+	return virtual_line
+end
+
 function Cell:render_output(buf)
 	if self.cell_type == "markdown" then
 		return
@@ -74,6 +115,12 @@ function Cell:render_output(buf)
 			local image_path = image.save_temp_image(base64_str)
 			local image_id = image.transmit_image(image_path, dims.width, dims.height)
 			table.insert(images, { path = image_path, dims = dims, id = image_id })
+		elseif output.output_type == "error" then
+			for _, raw_line in ipairs(output.traceback) do
+				for line in tostring(raw_line):gmatch("([^" .. "\n" .. "]+)") do
+					table.insert(virt_lines, process_line(line))
+				end
+			end
 		end
 	end
 

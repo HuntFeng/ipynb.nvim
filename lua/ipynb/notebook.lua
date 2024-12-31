@@ -1,6 +1,6 @@
 local Cell = require("ipynb.cell")
 local ns_id = require("ipynb.image").ns_id
-local config = require("ipynb.config")
+local opts = require("ipynb.config").opts
 
 ---@class Notebook
 ---@field buf integer
@@ -155,7 +155,7 @@ function Notebook:update_code_cells()
 		if code_block_node == nil then
 			goto continue
 		end
-		local start_row, start_col, end_row, end_col = code_block_node:range()
+		local start_row, _, end_row, _ = code_block_node:range()
 		self:update_cell(cell_id, { range = { start_row, end_row } })
 		for child in code_block_node:iter_children() do
 			if child:type() == "code_fence_content" then
@@ -276,7 +276,7 @@ function Notebook:setup_on_changedtree_handler()
 end
 
 function Notebook:save_notebook()
-	vim.fn.SaveNotebook(self.file, self.cells, config.save_outputs)
+	vim.fn.SaveNotebook(self.file, self.cells, opts.save_outputs)
 	vim.api.nvim_buf_set_option(self.buf, "modified", false)
 end
 

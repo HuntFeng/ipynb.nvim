@@ -1,5 +1,6 @@
 local codes = require("ipynb.codes")
 local term = require("ipynb.term")
+local opts = require("ipynb.config").opts
 
 local uv = vim.loop
 
@@ -118,7 +119,7 @@ local function get_image_dimensions(base64_str)
 
 	-- scale image
 	local term_size = term.get_size()
-	local scale_factor = 1.0
+	local scale_factor = opts.image_scale_factor
 	local width = math.floor(pixel_width / term_size.cell_width * scale_factor)
 	local height = math.floor(pixel_height / term_size.cell_height * scale_factor)
 	return { width = width, height = height }
