@@ -284,7 +284,10 @@ function Notebook:run_cell()
 	local row = vim.fn.getcurpos()[2]
 	for _, cell in ipairs(self.cells) do
 		if cell.cell_type == "code" and row >= cell.range[1] and row < cell.range[2] then
-			vim.fn.ExecuteCell(self.file, cell.id, cell.source)
+			cell.execution_count = "*"
+			cell.outputs = {}
+			cell:render_output(self.buf)
+			vim.fn.RunCell(self.file, cell.id, cell.source)
 		end
 	end
 end

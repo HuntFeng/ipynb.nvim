@@ -28,9 +28,13 @@ users modify buffer -> triggers on_changedtree in nvim-treesitter
 
 fixme:
 - [x] cannot run code for newly added cell
-- [ ] cannot queue a cell for running, must wait until one finishes
+- [x] cannot queue a cell for running, must wait until one finishes
+    - ExecuteCode is already async. Loops in ExecuteCode won't block the neovim frontend
+    - We just need to ensure we get all messages when we run different cells in the same notebook "simultanuously"
+        - that means we need to have a 
 - [x] cannot delete cells properly when executing code
 - [x] cannot correctly update tqdm progress bar
+- [ ] cannot display errors
 
 todo:
 - [x] loading
