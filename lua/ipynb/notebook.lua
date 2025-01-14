@@ -305,4 +305,13 @@ function Notebook:run_cell()
 	end
 end
 
+function Notebook:enter_cell_output()
+	local row = vim.fn.getcurpos()[2]
+	for _, cell in ipairs(self.cells) do
+		if cell.cell_type == "code" and row >= cell.range[1] and row < cell.range[2] then
+			cell:enter_output_window()
+		end
+	end
+end
+
 return Notebook

@@ -11,25 +11,10 @@ end
 
 local ns_id = vim.api.nvim_create_namespace("ipynb")
 
-local function write_placeholder(image_id, line, col, width, height)
-	local virt_lines = {}
-	local hl_group = "@ipynb-image-id-" .. tostring(image_id)
-	vim.api.nvim_set_hl(0, hl_group, { fg = string.format("#%06X", image_id) })
-	local buf = vim.api.nvim_get_current_buf()
-	for i = 1, height do
-		local characters = ""
-		for j = 1, width do
-			characters = characters .. codes.placeholder .. codes.diacritics[i] .. codes.diacritics[j]
-			-- characters = characters .. "|" .. i .. j
-		end
-		table.insert(virt_lines, { { characters, hl_group } })
-	end
-	vim.api.nvim_buf_set_extmark(buf, ns_id, line, col, {
-		virt_lines = virt_lines,
-		virt_lines_above = false,
-	})
-end
-
+---@param image_id integer
+---@param width integer
+---@param height integer
+---@return table virt_lines
 local function generate_unicode_placeholders(image_id, width, height)
 	local virt_lines = {}
 	local hl_group = "@ipynb-image-id-" .. tostring(image_id)
@@ -128,7 +113,6 @@ end
 return {
 	ns_id = ns_id,
 	transmit_image = transmit_image,
-	write_placeholder = write_placeholder,
 	generate_unicode_placeholders = generate_unicode_placeholders,
 	save_temp_image = save_temp_image,
 	get_image_dimensions = get_image_dimensions,
