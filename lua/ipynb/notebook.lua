@@ -110,6 +110,16 @@ function Notebook:prepare_cells(cell_datas)
 			cell.range = code_cell_ranges[i]
 			cell:render_output(self.buf)
 			i = i + 1
+		elseif cell.cell_type == "markdown" then
+			local start_row = 0
+			local end_row = #vim.api.nvim_buf_get_lines(self.buf, 0, -1, true)
+			if i > 1 then
+				start_row = code_cell_ranges[i - 1][2]
+			end
+			if i < #code_cell_ranges then
+				end_row = code_cell_ranges[i][1]
+			end
+			cell.range = { start_row, end_row }
 		end
 		table.insert(self.cells, cell)
 	end
@@ -246,8 +256,12 @@ function Notebook:update_markdown_cells()
 				if not cell_data then
 					cell_data = { cell_type = "markdown" }
 					cell_data.source = vim.treesitter.get_node_text(node, self.buf)
+					local start_row, _, end_row, _ = vim.treesitter.get_node_range(node)
+					cell_data.range = { start_row, end_row }
 				end
 				cell_data.source = cell_data.source .. "\n" .. vim.treesitter.get_node_text(node, self.buf)
+				local _, _, end_row, _ = vim.treesitter.get_node_range(node)
+				cell_data.range[2] = end_row
 			else
 				-- here we put the accumulated markdown cell into notebook
 				if cell_data then
@@ -294,7 +308,7 @@ function Notebook:save_notebook()
 end
 
 function Notebook:run_cell()
-	local row = vim.fn.getcurpos()[2]
+	local row = vim.fn.getcurpos()[2] - 1
 	for _, cell in ipairs(self.cells) do
 		if cell.cell_type == "code" and row >= cell.range[1] and row < cell.range[2] then
 			cell.execution_count = "*"
@@ -306,10 +320,28 @@ function Notebook:run_cell()
 end
 
 function Notebook:enter_cell_output()
-	local row = vim.fn.getcurpos()[2]
+	local row = vim.fn.getcurpos()[2] - 1
 	for _, cell in ipairs(self.cells) do
 		if cell.cell_type == "code" and row >= cell.range[1] and row < cell.range[2] then
 			cell:enter_output_window()
+		end
+	end
+end
+
+function Notebook:goto_next_cell()
+	local row = vim.fn.getcurpos()[2] - 1
+	for i, cell in ipairs(self.cells) do
+		if row >= cell.range[1] and row < cell.range[2] and #self.cells > i then
+			vim.api.nvim_win_set_cursor(0, { self.cells[i + 1].range[1] + 1, 0 })
+		end
+	end
+end
+
+function Notebook:goto_prev_cell()
+	local row = vim.fn.getcurpos()[2] - 1
+	for i, cell in ipairs(self.cells) do
+		if row >= cell.range[1] and row < cell.range[2] and i > 1 then
+			vim.api.nvim_win_set_cursor(0, { self.cells[i - 1].range[1] + 1, 0 })
 		end
 	end
 end
