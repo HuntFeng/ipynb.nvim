@@ -1,6 +1,7 @@
 local Cell = require("ipynb.cell")
 local ns_id = require("ipynb.image").ns_id
 local opts = require("ipynb.config").opts
+local commands = require("ipynb.commands")
 
 ---@class Notebook
 ---@field buf integer
@@ -24,6 +25,8 @@ function Notebook:new(buf, file)
 	notebook:set_buffer_content(lines)
 	notebook:prepare_cells(cell_datas)
 	notebook:setup_on_changedtree_handler()
+
+	commands.init(notebook)
 	return notebook
 end
 
@@ -306,45 +309,6 @@ end
 function Notebook:save_notebook()
 	vim.fn.SaveNotebook(self.file, self.cells, opts.save_outputs)
 	vim.api.nvim_buf_set_option(self.buf, "modified", false)
-end
-
-function Notebook:run_cell()
-	local row = vim.fn.getcurpos()[2] - 1
-	for _, cell in ipairs(self.cells) do
-		if cell.cell_type == "code" and row >= cell.range[1] and row < cell.range[2] then
-			cell.execution_count = "*"
-			cell.outputs = {}
-			cell:render_output(self.buf)
-			vim.fn.RunCell(self.file, cell.id, cell.source)
-		end
-	end
-end
-
-function Notebook:enter_cell_output()
-	local row = vim.fn.getcurpos()[2] - 1
-	for _, cell in ipairs(self.cells) do
-		if cell.cell_type == "code" and row >= cell.range[1] and row < cell.range[2] then
-			cell:enter_output_window()
-		end
-	end
-end
-
-function Notebook:goto_next_cell()
-	local row = vim.fn.getcurpos()[2] - 1
-	for i, cell in ipairs(self.cells) do
-		if row >= cell.range[1] and row < cell.range[2] and #self.cells > i then
-			vim.api.nvim_win_set_cursor(0, { self.cells[i + 1].range[1] + 1, 0 })
-		end
-	end
-end
-
-function Notebook:goto_prev_cell()
-	local row = vim.fn.getcurpos()[2] - 1
-	for i, cell in ipairs(self.cells) do
-		if row >= cell.range[1] and row < cell.range[2] and i > 1 then
-			vim.api.nvim_win_set_cursor(0, { self.cells[i - 1].range[1] + 1, 0 })
-		end
-	end
 end
 
 return Notebook

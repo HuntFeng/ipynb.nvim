@@ -41,22 +41,6 @@ local function setup(opts)
 			vim.api.nvim_buf_create_user_command(args.buf, "NBInit", function()
 				vim.fn.InitKernel(args.file)
 			end, {})
-
-			vim.api.nvim_buf_create_user_command(args.buf, "NBRunCell", function()
-				notebooks[args.file]:run_cell()
-			end, {})
-
-			vim.api.nvim_buf_create_user_command(args.buf, "NBEnterCellOutput", function()
-				notebooks[args.file]:enter_cell_output()
-			end, {})
-
-			vim.api.nvim_buf_create_user_command(args.buf, "NBNextCell", function()
-				notebooks[args.file]:goto_next_cell()
-			end, {})
-
-			vim.api.nvim_buf_create_user_command(args.buf, "NBPrevCell", function()
-				notebooks[args.file]:goto_prev_cell()
-			end, {})
 		end,
 	})
 
@@ -66,6 +50,9 @@ local function setup(opts)
 		{ "<localleader>o", "<cmd>NBEnterCellOutput<cr>", desc = "NBEnterCellOutput" },
 		{ "]c", "<cmd>NBNextCell<cr>", desc = "NBNextCell" },
 		{ "[c", "<cmd>NBPrevCell<cr>", desc = "NBPrevCell" },
+		{ "<localleader>a", "<cmd>NBAddCellAbove<cr>", desc = "NBAddCellAbove" },
+		{ "<localleader>b", "<cmd>NBAddCellBelow<cr>", desc = "NBAddCellBelow" },
+		{ "<localleader>R", "<cmd>NBRunAndAddCellBelow<cr>", desc = "NBRunAndAddCellBelow" },
 	})
 
 	-- on save
