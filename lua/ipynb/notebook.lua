@@ -258,10 +258,11 @@ function Notebook:update_markdown_cells()
 					cell_data.source = vim.treesitter.get_node_text(node, self.buf)
 					local start_row, _, end_row, _ = vim.treesitter.get_node_range(node)
 					cell_data.range = { start_row, end_row }
+				else
+					cell_data.source = cell_data.source .. "\n" .. vim.treesitter.get_node_text(node, self.buf)
+					local _, _, end_row, _ = vim.treesitter.get_node_range(node)
+					cell_data.range[2] = end_row
 				end
-				cell_data.source = cell_data.source .. "\n" .. vim.treesitter.get_node_text(node, self.buf)
-				local _, _, end_row, _ = vim.treesitter.get_node_range(node)
-				cell_data.range[2] = end_row
 			else
 				-- here we put the accumulated markdown cell into notebook
 				if cell_data then
