@@ -3,6 +3,30 @@ local commands = {}
 ---Hook commands to notebook class
 ---@param notebook Notebook
 function commands.init(notebook)
+	vim.api.nvim_buf_create_user_command(notebook.buf, "NBInit", function()
+		commands.init_notebook(notebook)
+	end, {})
+
+	vim.api.nvim_buf_create_user_command(notebook.buf, "NBStartKernel", function()
+		vim.fn.StartKernel(notebook.file)
+	end, {})
+
+	vim.api.nvim_buf_create_user_command(notebook.buf, "NBInterruptKernel", function()
+		vim.fn.InterruptKernel(notebook.file)
+	end, {})
+
+	vim.api.nvim_buf_create_user_command(notebook.buf, "NBShutdownKernel", function()
+		vim.fn.ShutdownKernel(notebook.file)
+	end, {})
+
+	vim.api.nvim_buf_create_user_command(notebook.buf, "NBRestartKernel", function()
+		vim.fn.RestartKernel(notebook.file)
+	end, {})
+
+	vim.api.nvim_buf_create_user_command(notebook.buf, "NBGetKernelSpec", function()
+		commands.get_kernel_spec(notebook)
+	end, {})
+
 	vim.api.nvim_buf_create_user_command(notebook.buf, "NBRunCell", function()
 		commands.run_cell(notebook)
 	end, {})
@@ -42,6 +66,98 @@ function commands.init(notebook)
 	vim.api.nvim_buf_create_user_command(notebook.buf, "NBPasteCell", function()
 		commands.paste_cell(notebook)
 	end, {})
+end
+
+---@param notebook Notebook
+function commands.init_notebook(notebook)
+	---@type table
+	local kernels = vim.fn.ListKernels()
+	if next(kernels) == nil then
+		vim.notify("Jupyter kernels not found")
+		return
+	end
+
+	local display_list = {}
+	local kernel_keys = {}
+	for key, value in pairs(kernels) do
+		table.insert(display_list, value.spec.display_name)
+		table.insert(kernel_keys, key)
+	end
+
+	if #kernel_keys == 1 then
+		vim.fn.StartKernel(notebook.file, kernel_keys[1])
+	else
+		vim.ui.select(display_list, {
+			prompt = "Select Jupyter Kernel:",
+			format_item = function(item)
+				return item
+			end,
+		}, function(choice)
+			if choice then
+				-- Find the corresponding kernel key
+				for key, kernel in pairs(kernels) do
+					if kernel.spec.display_name == choice then
+						vim.fn.StartKernel(notebook.file, key)
+						break
+					end
+				end
+			end
+		end)
+	end
+end
+
+---@param notebook Notebook
+function commands.get_kernel_spec(notebook)
+	local buf = vim.api.nvim_create_buf(false, true)
+	local win_width = vim.api.nvim_win_get_width(0)
+	local win_height = vim.api.nvim_win_get_height(0)
+	local width = math.floor(win_width * 0.80)
+	local height = math.floor(win_height * 0.80)
+	vim.api.nvim_open_win(buf, true, {
+		relative = "win",
+		width = width,
+		height = height,
+		row = math.floor((win_height - height) / 2),
+		col = math.floor((win_width - width) / 2),
+		style = "minimal",
+		border = "single",
+		title = "Kernel Info",
+	})
+
+	---@param tbl table
+	---@param indent integer
+	local function table_to_lines(tbl, indent)
+		-- Convert a Lua table to an array of lines with indentation for readability
+		indent = indent or 0
+		local lines = {}
+		local padding = string.rep("  ", indent)
+
+		for key, value in pairs(tbl) do
+			local formatted_key = tostring(key)
+			if type(value) == "table" then
+				table.insert(lines, padding .. formatted_key .. ":")
+				local child_lines = table_to_lines(value, indent + 1)
+				for _, line in ipairs(child_lines) do
+					table.insert(lines, line)
+				end
+			else
+				local formatted_value = tostring(value)
+				table.insert(lines, padding .. formatted_key .. ": " .. formatted_value)
+			end
+		end
+
+		return lines
+	end
+
+	local kernel_spec = vim.fn.GetKernelSpec(notebook.file)
+	local lines = {}
+	if kernel_spec == vim.NIL then
+		table.insert(lines, "No Kernel Activated")
+	else
+		lines = table_to_lines(kernel_spec, 4)
+	end
+	vim.api.nvim_buf_set_lines(buf, 0, -1, true, lines)
+	vim.api.nvim_buf_set_option(buf, "modifiable", false)
 end
 
 ---@param notebook Notebook

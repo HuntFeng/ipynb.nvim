@@ -1,6 +1,7 @@
 from typing import Dict, List, Tuple
 
 from jupytext import jupytext, config
+from jupyter_client.kernelspec import KernelSpecManager
 from .kernel import Kernel
 import pynvim
 
@@ -15,7 +16,7 @@ configuration = config.JupytextConfiguration(notebook_metadata_filter="-all")
 class Backend:
     kernels: Dict[str, Kernel]
     notebooks: Dict[str, jupytext.NotebookNode]
-    cell_ids: Dict[str, Dict[str, str]]
+    cell_ids: Dict[str, Dict[str, int]]
 
     def __init__(self, nvim: pynvim.Nvim):
         self.nvim = nvim
@@ -77,8 +78,13 @@ class Backend:
 
         jupytext.write(self.notebooks[notebook_path], notebook_path)
 
-    @pynvim.function("InitKernel")
-    def init_kernel(self, args: Tuple[str]):
+    @pynvim.function("ListKernels", sync=True)
+    def list_kernels(self, _):
+        manager = KernelSpecManager()
+        return manager.get_all_specs()
+
+    @pynvim.function("GetKernelSpec", sync=True)
+    def get_kernel_spec(self, args: Tuple[str]):
         """
         Initializing jupyter kernel for a specific notebook.
 
@@ -86,9 +92,60 @@ class Backend:
             args[0]: notebook_path
         """
         notebook_path = args[0]
+        if not notebook_path in self.kernels:
+            return
+        return self.kernels[notebook_path].get_spec()
+
+    @pynvim.function("StartKernel")
+    def init_kernel(self, args: Tuple[str, str]):
+        """
+        Initializing jupyter kernel for a specific notebook.
+
+        Input:
+            args[0]: notebook_path
+            args[1]: kernel_key
+        """
+        notebook_path = args[0]
+        kernel_key = args[1]
         self.nvim.out_write(f"Initializing kernel for {notebook_path}\n")
-        self.kernels[notebook_path] = Kernel()
+        self.kernels[notebook_path] = Kernel(kernel_key)
         self.cell_ids[notebook_path] = dict()
+
+    @pynvim.function("InterruptKernel")
+    def interrupt_kernel(self, args: Tuple[str]):
+        """
+        Interupt a kernel for a notebook.
+
+        Input:
+            args[0]: notebook_path
+        """
+        notebook_path = args[0]
+        if notebook_path in self.kernels:
+            self.kernels[notebook_path].interrupt()
+
+    @pynvim.function("ShutdownKernel")
+    def shutdown_kernel(self, args: Tuple[str]):
+        """
+        Shutdonw a kernel for a notebook.
+
+        Input:
+            args[0]: notebook_path
+        """
+        notebook_path = args[0]
+        if notebook_path in self.kernels:
+            self.kernels[notebook_path].shutdown()
+
+    @pynvim.function("RestartKernel")
+    def restart_kernels(self, args: Tuple[str]):
+        """
+        Restart a kernel for a notebook.
+
+        Input:
+            args[0]: notebook_path
+        """
+        notebook_path = args[0]
+        if notebook_path in self.kernels:
+            self.kernels[notebook_path].restart()
 
     @pynvim.function("RunCell")
     def run_cell(self, args: Tuple[str, int, str]):
@@ -104,20 +161,18 @@ class Backend:
         notebook_path = args[0]
         cell_id = args[1]
         code = args[2]
-        # get kernel from the list, if kernel doesn't exist then initialize it
-        self.kernels[notebook_path] = self.kernels.get(notebook_path, Kernel())
-        self.cell_ids[notebook_path] = self.cell_ids.get(notebook_path, dict())
+        if not notebook_path in self.kernels:
+            self.nvim.out_write("Haven't initialize kernel yet\n")
+            return
+
         try:
             msg_id = self.kernels[notebook_path].execute(code)
             self.cell_ids[notebook_path][msg_id] = cell_id
-            # threading.Thread(
-            #     target=self.update_cells, args=(notebook_path, cell_id, msg_id)
-            # ).start()
-            self.update_cells(notebook_path, cell_id)
+            self.handle_messages(notebook_path)
         except Exception as e:
-            self.nvim.out_write(f"{repr(e)}\n")
+            self.nvim.out_write(f"python: run_cell(): {repr(e)}\n")
 
-    def update_cells(self, notebook_path: str, cell_id: int):
+    def handle_messages(self, notebook_path: str):
         """
         Get jupyter kernel reponse and update cells in neovim.
 
@@ -165,27 +220,20 @@ class Backend:
         }
         """
 
-        # self.nvim.out_write("in update_cells function\n")
         kernel = self.kernels[notebook_path]
         kernel_client = kernel.kernel_client
         while True:
             try:
                 msg = kernel_client.get_iopub_msg(timeout=5)
                 msg_id = msg["parent_header"]["msg_id"]
+                if msg["parent_header"]["msg_type"] == "shutdown_request":
+                    continue
                 cell_id = self.cell_ids[notebook_path][msg_id]
                 output = {"output_type": msg["msg_type"], **msg["content"]}
-                # must use async_call in a non-main thread
-                # https://pynvim.readthedocs.io/en/latest/usage/python-plugin-api.html#async-calls
-                # self.nvim.async_call(
-                #     self.nvim.lua._ipynb.update_cell_outputs,
-                #     notebook_path,
-                #     cell_id,
-                #     output,
-                # )
                 self.nvim.lua._ipynb.update_cell_outputs(notebook_path, cell_id, output)
 
                 if msg["content"].get("execution_state") == "idle":
                     break
             except Exception as e:
-                self.nvim.async_call(self.nvim.out_write, f"{repr(e)}\n")
+                self.nvim.out_write(f"python: update_cells(): {repr(e)}\n")
                 break
