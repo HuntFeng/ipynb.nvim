@@ -96,7 +96,7 @@ class Backend:
             return
         return self.kernels[notebook_path].get_spec()
 
-    @pynvim.function("StartKernel")
+    @pynvim.function("StartKernel", sync=True)
     def init_kernel(self, args: Tuple[str, str]):
         """
         Initializing jupyter kernel for a specific notebook.
@@ -107,7 +107,6 @@ class Backend:
         """
         notebook_path = args[0]
         kernel_key = args[1]
-        self.nvim.out_write(f"Initializing kernel for {notebook_path}\n")
         self.kernels[notebook_path] = Kernel(kernel_key)
         self.cell_ids[notebook_path] = dict()
 
