@@ -101,7 +101,7 @@ function commands.start_kernel(notebook)
 		end)
 	end
 
-	notebook.kernel_status = "idle"
+	notebook.is_kernel_started = true
 end
 
 ---@param notebook Notebook
@@ -160,7 +160,7 @@ end
 
 ---@param notebook Notebook
 function commands.run_cell(notebook)
-	if notebook.kernel_status == "stopped" then
+	if not notebook.is_kernel_started then
 		commands.start_kernel(notebook)
 	end
 

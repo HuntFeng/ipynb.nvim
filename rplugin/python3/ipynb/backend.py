@@ -109,6 +109,7 @@ class Backend:
         kernel_key = args[1]
         self.kernels[notebook_path] = Kernel(kernel_key)
         self.cell_ids[notebook_path] = dict()
+        self.nvim.out_write(f"Kernel started for {notebook_path}\n")
 
     @pynvim.function("InterruptKernel")
     def interrupt_kernel(self, args: Tuple[str]):
