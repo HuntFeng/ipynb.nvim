@@ -36,35 +36,6 @@ function Notebook:new(buf, file)
 	return notebook
 end
 
----@param id integer
-function Notebook:delete_cell(id)
-	for i, cell in ipairs(self.cells) do
-		if cell.id == id then
-			table.remove(self.cells, i)
-		end
-	end
-end
-
----@param id integer
----@param fields {source?: string, range?: [integer, integer], outputs?: table[]}
-function Notebook:update_cell(id, fields)
-	for _, cell in ipairs(self.cells) do
-		if cell.id == id then
-			if fields.source then
-				cell.source = fields.source
-			end
-
-			if fields.range then
-				cell.range = fields.range
-			end
-
-			if fields.outputs then
-				cell.outputs = fields.outputs
-			end
-		end
-	end
-end
-
 ---@param  lines string[]
 function Notebook:set_buffer_content(lines)
 	if not vim.api.nvim_buf_is_valid(self.buf) then
@@ -113,7 +84,7 @@ function Notebook:prepare_cells(cell_datas)
 	end
 
 	local i = 1
-	for _, cell_data in ipairs(cell_datas) do
+	for idx, cell_data in ipairs(cell_datas) do
 		local cell = Cell:new(cell_data)
 		if cell.cell_type == "code" then
 			cell.range = code_cell_ranges[i]
@@ -131,7 +102,11 @@ function Notebook:prepare_cells(cell_datas)
 			cell.range = { start_row, end_row }
 		end
 		table.insert(self.cells, cell)
+		self.id2idx[cell.id] = idx
 	end
+	vim.schedule(function()
+		vim.print("id2idx", self.id2idx)
+	end)
 end
 
 function Notebook:handle_removed_code_blocks()
@@ -143,9 +118,16 @@ function Notebook:handle_removed_code_blocks()
 		local line = vim.api.nvim_buf_get_lines(self.buf, row, row + 1, false)[1]
 		if not (line and line:match("^```")) then
 			vim.api.nvim_buf_del_extmark(self.buf, ns_id, extmark_id)
-			self:delete_cell(extmark_id)
+			table.remove(self.cells, self.id2idx[extmark_id])
 		end
 	end
+
+	for i = 1, #self.cells do
+		self.id2idx[self.cells[i].id] = i
+	end
+
+	-- sometimes neovim does not redraw after large extmarks deleted
+	vim.cmd("redraw!")
 end
 
 function Notebook:handle_added_code_blocks()
@@ -170,6 +152,10 @@ function Notebook:handle_added_code_blocks()
 			table.insert(self.cells, #extmarks, cell)
 		end
 	end
+
+	for i = 1, #self.cells do
+		self.id2idx[self.cells[i].id] = i
+	end
 end
 
 function Notebook:update_code_cells()
@@ -186,11 +172,11 @@ function Notebook:update_code_cells()
 			goto continue
 		end
 		local start_row, _, end_row, _ = code_block_node:range()
-		self:update_cell(cell_id, { range = { start_row, end_row } })
+		self.cells[self.id2idx[cell_id]].range = { start_row, end_row }
 		for child in code_block_node:iter_children() do
 			if child:type() == "code_fence_content" then
 				local source = vim.treesitter.get_node_text(child, self.buf)
-				self:update_cell(cell_id, { source = source })
+				self.cells[self.id2idx[cell_id]].source = source
 			end
 		end
 
@@ -290,6 +276,9 @@ function Notebook:update_markdown_cells()
 		end
 
 		self.cells = cells
+		for i = 1, #self.cells do
+			self.id2idx[self.cells[i].id] = i
+		end
 	end
 end
 

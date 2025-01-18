@@ -74,18 +74,15 @@ end
 ---@param output table
 local function update_cell_outputs(notebook_path, cell_id, output)
 	local notebook = notebooks[notebook_path]
-	for _, cell in ipairs(notebook.cells) do
-		if cell.id == cell_id then
-			if output["output_type"] == "status" then
-			-- do nothing
-			elseif output["output_type"] == "execute_input" then
-				cell.execution_count = tostring(output["execution_count"])
-			else
-				table.insert(cell.outputs, output)
-			end
-			cell:render_output(notebook.buf)
-		end
+	local cell = notebook.cells[notebook.id2idx[cell_id]]
+	if output["output_type"] == "status" then
+		-- do nothing
+	elseif output["output_type"] == "execute_input" then
+		cell.execution_count = tostring(output["execution_count"])
+	else
+		table.insert(cell.outputs, output)
 	end
+	cell:render_output(notebook.buf)
 end
 
 return {
