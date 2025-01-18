@@ -9,6 +9,7 @@ local commands = require("ipynb.commands")
 ---@field cells Cell[]
 ---@field copied_cell Cell | nil
 ---@field is_kernel_started boolean
+---@field id2idx table
 local Notebook = {}
 
 ---@param buf integer
@@ -23,6 +24,7 @@ function Notebook:new(buf, file)
 	notebook.buf = buf
 	notebook.file = file
 	notebook.is_kernel_started = false
+	notebook.id2idx = {}
 	local results = vim.fn.LoadNotebook(file)
 	local lines = results[1]
 	local cell_datas = results[2]

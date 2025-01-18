@@ -82,10 +82,7 @@ function Cell:render_output(buf)
 
 	local hl_group = "Special"
 
-	local virt_lines = {
-		{ { string.format("cell_id: %d, range: {%d, %d}", self.id, self.range[1], self.range[2]), "Comment" } },
-		{ { string.format("[%s]:", self.execution_count), hl_group } },
-	}
+	local virt_lines = {}
 	local images = {}
 	for _, output in ipairs(self.outputs) do
 		if output.output_type == "execute_result" then
@@ -93,7 +90,7 @@ function Cell:render_output(buf)
 				table.insert(virt_lines, { { line, hl_group } })
 			end
 		elseif output.output_type == "stream" then
-			if #virt_lines == 2 then
+			if #virt_lines == 0 then
 				table.insert(virt_lines, { { "", hl_group } })
 			end
 			local line = virt_lines[#virt_lines][1][1]
@@ -123,6 +120,13 @@ function Cell:render_output(buf)
 			end
 		end
 	end
+
+	table.insert(virt_lines, 1, { { string.format("[%s]", self.execution_count), hl_group } })
+	-- table.insert(
+	-- 	virt_lines,
+	-- 	1,
+	-- 	{ { string.format("cell_id: %d, range: {%d, %d}", self.id, self.range[1], self.range[2]), "Comment" } }
+	-- )
 
 	for _, img in ipairs(images) do
 		local placeholders = image.generate_unicode_placeholders(img.id, img.dims.width, img.dims.height)
