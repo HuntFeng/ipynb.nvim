@@ -12,7 +12,9 @@ local function setup(opts)
 	vim.api.nvim_create_autocmd("BufReadCmd", {
 		pattern = "*.ipynb",
 		callback = function(args)
-			notebooks[args.file] = Notebook:new(args.buf, args.file)
+			if notebooks[args.file] == nil then
+				notebooks[args.file] = Notebook:new(args.buf, args.file)
+			end
 
 			conform.setup({
 				formatters_by_ft = {
@@ -34,20 +36,6 @@ local function setup(opts)
 				},
 			}
 		end,
-	})
-
-	local wk = require("which-key")
-	wk.add({
-		{ "<localleader>r", "<cmd>NBRunCell<cr>", desc = "NBRunCell" },
-		{ "<localleader>o", "<cmd>NBEnterCellOutput<cr>", desc = "NBEnterCellOutput" },
-		{ "]c", "<cmd>NBNextCell<cr>", desc = "NBNextCell" },
-		{ "[c", "<cmd>NBPrevCell<cr>", desc = "NBPrevCell" },
-		{ "<localleader>a", "<cmd>NBAddCellAbove<cr>", desc = "NBAddCellAbove" },
-		{ "<localleader>b", "<cmd>NBAddCellBelow<cr>", desc = "NBAddCellBelow" },
-		{ "<localleader>R", "<cmd>NBRunAndAddCellBelow<cr>", desc = "NBRunAndAddCellBelow" },
-		{ "<localleader>d", "<cmd>NBDeleteCell<cr>", desc = "NBDeleteCell" },
-		{ "<localleader>y", "<cmd>NBCopyCell<cr>", desc = "NBCopyCell" },
-		{ "<localleader>p", "<cmd>NBPasteCell<cr>", desc = "NBPasteCell" },
 	})
 
 	-- on save

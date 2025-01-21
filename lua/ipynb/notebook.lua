@@ -104,9 +104,6 @@ function Notebook:prepare_cells(cell_datas)
 		table.insert(self.cells, cell)
 		self.id2idx[cell.id] = idx
 	end
-	vim.schedule(function()
-		vim.print("id2idx", self.id2idx)
-	end)
 end
 
 function Notebook:handle_removed_code_blocks()
@@ -219,10 +216,6 @@ function Notebook:has_incomplete_code_block()
 end
 
 function Notebook:update_markdown_cells()
-	if self:has_incomplete_code_block() then
-		return
-	end
-
 	local parser = vim.treesitter.get_parser(self.buf, "markdown")
 	local tree = parser:parse()[1]
 

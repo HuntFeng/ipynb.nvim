@@ -1,6 +1,6 @@
 local default_options = {
 	image_scale_factor = 1.0,
-	save_outputs = false,
+	save_outputs = true,
 }
 
 local opts = {}
