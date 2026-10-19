@@ -100,6 +100,8 @@ function commands.start_kernel(notebook)
 			end
 		end)
 	end
+
+	notebook.kernel_status = "idle"
 end
 
 ---@param notebook Notebook
