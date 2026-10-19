@@ -10,6 +10,7 @@ local commands = require("ipynb.commands")
 ---@field copied_cell Cell | nil
 ---@field is_kernel_started boolean
 ---@field id2idx table
+---@field lines table
 local Notebook = {}
 
 ---@param buf integer
@@ -26,9 +27,9 @@ function Notebook:new(buf, file)
 	notebook.is_kernel_started = false
 	notebook.id2idx = {}
 	local results = vim.fn.LoadNotebook(file)
-	local lines = results[1]
+	notebook.lines = results[1]
 	local cell_datas = results[2]
-	notebook:set_buffer_content(lines)
+	notebook:set_buffer_content()
 	notebook:prepare_cells(cell_datas)
 	notebook:setup_on_changedtree_handler()
 
@@ -36,14 +37,13 @@ function Notebook:new(buf, file)
 	return notebook
 end
 
----@param  lines string[]
-function Notebook:set_buffer_content(lines)
+function Notebook:set_buffer_content()
 	if not vim.api.nvim_buf_is_valid(self.buf) then
 		return
 	end
 
-	table.insert(lines, 1, "") -- add empty line for undo
-	vim.api.nvim_buf_set_lines(self.buf, 0, -1, false, lines)
+	table.insert(self.lines, 1, "") -- add empty line for undo
+	vim.api.nvim_buf_set_lines(self.buf, 0, -1, false, self.lines)
 	vim.api.nvim_buf_set_option(self.buf, "filetype", "markdown")
 	vim.api.nvim_buf_set_option(self.buf, "modified", false)
 	-- In order to make :undo a no-op immediately after the buffer is read, we

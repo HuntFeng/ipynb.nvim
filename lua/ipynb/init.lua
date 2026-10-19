@@ -14,6 +14,12 @@ local function setup(opts)
 		callback = function(args)
 			if notebooks[args.file] == nil then
 				notebooks[args.file] = Notebook:new(args.buf, args.file)
+			else
+				notebooks[args.file]:set_buffer_content()
+				-- refresh extmarks
+				for _, cell in ipairs(notebooks[args.file].cells) do
+					cell:render_output(args.buf)
+				end
 			end
 
 			conform.setup({
@@ -44,6 +50,13 @@ local function setup(opts)
 		callback = function(args)
 			conform.format({ bufnr = args.buf })
 			notebooks[args.file]:save_notebook()
+		end,
+	})
+
+	vim.api.nvim_create_autocmd("BufLeave", {
+		pattern = "*.ipynb",
+		callback = function(args)
+			notebooks[args.file].lines = vim.api.nvim_buf_get_lines(args.buf, 0, -1, true)
 		end,
 	})
 
