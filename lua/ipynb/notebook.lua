@@ -123,7 +123,7 @@ function Notebook:prepare_cells(cell_datas)
 			if i > 1 then
 				start_row = code_cell_ranges[i - 1][2]
 			end
-			if i < #code_cell_ranges then
+			if i <= #code_cell_ranges then
 				end_row = code_cell_ranges[i][1]
 			end
 			cell.range = { start_row, end_row }
