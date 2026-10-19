@@ -1,5 +1,13 @@
 local Hydra = require("hydra")
 
+local hint = [[
+Cell Mode:             ^_<Esc>_: Toggle Cell Mode
+^_j_: Next Cell        ^_k_: Previous Cell
+^_a_: Add Cell Above   ^_b_: Add Cell Below
+^_d_: Delete/Cut Cell  ^_y_: Copy Cell                      ^_p_: Paste Cell
+^_r_: Run Cell         ^_R_: Run Cell And Goto Next Cell    ^_o_: Enter Cell Output
+]]
+
 -- Define the cell navigation Hydra
 local cell_mode = Hydra({
 	name = "Cell Mode",
@@ -7,9 +15,12 @@ local cell_mode = Hydra({
 	body = "<Esc>", -- Keybinding to enter cell mode (can be any key combo)
 	config = {
 		invoke_on_body = true,
+		-- hint = { type = "window" },
+		-- hint = false,
 	},
+	hint = hint,
 	heads = {
-		-- { "<Esc>", nil, { exit = true, desc = "Exit Cell Mode" } },
+		{ "<Esc>", nil, { exit = true, desc = "Toggle Cell Mode" } },
 		{
 			"j",
 			function()
