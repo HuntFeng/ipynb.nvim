@@ -173,22 +173,40 @@ function Notebook:update_code_cells()
 end
 
 ---check if the code block is complete, or user still creating it
----@param node TSNode
----@return boolean is_complete
-local function is_complete_code_block(node)
-	for child in node:iter_children() do
-		if child:type() == "info_string" then
-			for grandchild in child:iter_children() do
-				if grandchild:type() == "language" then
-					return true
-				end
+---@return boolean
+function Notebook:has_incomplete_code_block()
+	local parser = vim.treesitter.get_parser(self.buf, "markdown")
+	local tree = parser:parse()[1]
+	local query = vim.treesitter.query.parse(
+		"markdown",
+		[[
+        (fenced_code_block
+          (info_string
+            (language))? @lang) @code_block
+    ]]
+	)
+
+	for _, match, _ in query:iter_matches(tree:root(), self.buf, 0, -1, { all = true }) do
+		local incomplete = true
+		for id, _ in pairs(match) do
+			if query.captures[id] == "lang" then
+				incomplete = false
 			end
 		end
+
+		if incomplete then
+			return true
+		end
 	end
+
 	return false
 end
 
 function Notebook:update_markdown_cells()
+	if self:has_incomplete_code_block() then
+		return
+	end
+
 	local parser = vim.treesitter.get_parser(self.buf, "markdown")
 	local tree = parser:parse()[1]
 
@@ -220,10 +238,6 @@ function Notebook:update_markdown_cells()
 				end
 				cell_data.source = cell_data.source .. "\n" .. vim.treesitter.get_node_text(node, self.buf)
 			else
-				-- code_block
-				if not is_complete_code_block(node) then
-					return
-				end
 				-- here we put the accumulated markdown cell into notebook
 				if cell_data then
 					local cell = Cell:new(cell_data)
