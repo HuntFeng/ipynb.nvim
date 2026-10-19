@@ -1,5 +1,6 @@
 local config = require("ipynb.config")
 local Notebook = require("ipynb.notebook")
+local image = require("ipynb.image")
 
 ---@type Notebook[]
 local notebooks = {}
@@ -20,12 +21,17 @@ local function setup(opts)
 			vim.api.nvim_buf_create_user_command(args.buf, "NBRunCell", function()
 				notebooks[args.file]:run_cell()
 			end, {})
+
+			vim.api.nvim_buf_create_user_command(args.buf, "NBEnterCellOutput", function()
+				notebooks[args.file]:enter_cell_output()
+			end, {})
 		end,
 	})
 
 	local wk = require("which-key")
 	wk.add({
-		{ "<leader>rr", "<cmd>NBRunCell<cr>", desc = "NBRunCell" },
+		{ "<localleader>r", "<cmd>NBRunCell<cr>", desc = "NBRunCell" },
+		{ "<localleader>o", "<cmd>NBEnterCellOutput<cr>", desc = "NBEnterCellOutput" },
 	})
 
 	-- on save
