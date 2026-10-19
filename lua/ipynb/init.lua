@@ -37,10 +37,6 @@ local function setup(opts)
 			vim.schedule(function()
 				require("otter").activate({ "markdown", "python" }, true, true, nil)
 			end)
-
-			vim.api.nvim_buf_create_user_command(args.buf, "NBInit", function()
-				vim.fn.InitKernel(args.file)
-			end, {})
 		end,
 	})
 

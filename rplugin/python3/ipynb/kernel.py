@@ -1,9 +1,10 @@
-from jupyter_client import KernelManager
+from typing import Optional, Any, Dict
+from jupyter_client.manager import KernelManager
 
 
 class Kernel:
 
-    def __init__(self) -> None:
+    def __init__(self, kernel_key: Optional[str] = None) -> None:
         self.kernel_manager = KernelManager()
         self.start()
 
@@ -24,3 +25,8 @@ class Kernel:
 
     def execute(self, code: str) -> str:
         return self.kernel_client.execute(code)
+
+    def get_spec(self) -> Optional[Dict[str, Any]]:
+        kernel_spec = self.kernel_manager.kernel_spec
+        if kernel_spec:
+            return kernel_spec.to_dict()

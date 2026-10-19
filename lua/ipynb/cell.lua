@@ -242,10 +242,8 @@ function Cell:enter_output_window()
 		return
 	end
 
-	-- prepare buffer
-	local buf = vim.api.nvim_create_buf(false, true)
-
 	-- create a floating window
+	local buf = vim.api.nvim_create_buf(false, true)
 	local win_width = vim.api.nvim_win_get_width(0)
 	local win_height = vim.api.nvim_win_get_height(0)
 	local width = math.floor(win_width * 0.80)
