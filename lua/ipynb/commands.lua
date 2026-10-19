@@ -190,9 +190,11 @@ end
 ---@param notebook Notebook
 function commands.goto_next_cell(notebook)
 	local row = vim.fn.getcurpos()[2] - 1
-	for i, cell in ipairs(notebook.cells) do
-		if row >= cell.range[1] and row < cell.range[2] and #notebook.cells > i then
-			vim.api.nvim_win_set_cursor(0, { notebook.cells[i + 1].range[1] + 1, 0 })
+	-- the cells are already sorted, we can do this
+	for i = 1, #notebook.cells do
+		local cell = notebook.cells[i]
+		if row < cell.range[1] then
+			vim.api.nvim_win_set_cursor(0, { cell.range[1] + 1, 0 })
 			break
 		end
 	end
@@ -201,9 +203,11 @@ end
 ---@param notebook Notebook
 function commands.goto_prev_cell(notebook)
 	local row = vim.fn.getcurpos()[2] - 1
-	for i, cell in ipairs(notebook.cells) do
-		if row >= cell.range[1] and row < cell.range[2] and i > 1 then
-			vim.api.nvim_win_set_cursor(0, { notebook.cells[i - 1].range[1] + 1, 0 })
+	-- the cells are already sorted, we can do this
+	for i = #notebook.cells, 1, -1 do
+		local cell = notebook.cells[i]
+		if row > cell.range[1] then
+			vim.api.nvim_win_set_cursor(0, { cell.range[1] + 1, 0 })
 			break
 		end
 	end
@@ -241,7 +245,7 @@ function commands.run_and_add_cell_below(notebook)
 	commands.add_cell_below(notebook)
 end
 
----Delete / Cut  cell
+---Delete / Cut cell
 ---@param notebook Notebook
 function commands.delete_cell(notebook)
 	local row = vim.fn.getcurpos()[2] - 1

@@ -1,6 +1,7 @@
 local config = require("ipynb.config")
 local Notebook = require("ipynb.notebook")
 local conform = require("conform")
+local cell_mode = require("ipynb.hydra")
 
 ---@type Notebook[]
 local notebooks = {}
@@ -36,6 +37,7 @@ local function setup(opts)
 
 			vim.schedule(function()
 				require("otter").activate({ "markdown", "python" }, true, true, nil)
+				cell_mode:activate()
 			end)
 		end,
 	})
