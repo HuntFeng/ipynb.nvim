@@ -1,10 +1,10 @@
-import os
 from typing import Dict, List, Tuple
 
 from jupytext import jupytext, config
 from .kernel import Kernel
 import pynvim
-import threading
+
+# import threading
 
 # remove all metadata from the text representation of the notebook.
 # minus sign - means remove
@@ -15,12 +15,14 @@ configuration = config.JupytextConfiguration(notebook_metadata_filter="-all")
 class Backend:
     kernels: Dict[str, Kernel]
     notebooks: Dict[str, jupytext.NotebookNode]
+    cell_ids: Dict[str, Dict[str, str]]
 
     def __init__(self, nvim: pynvim.Nvim):
         self.nvim = nvim
         self.nvim.exec_lua("_ipynb = require('ipynb')")
         self.notebooks = dict()
         self.kernels = dict()
+        self.cell_ids = dict()
 
     # name should be PascalCase otherwise pynvim won't recognize
     # https://github.com/neovim/pynvim/issues/334
@@ -64,9 +66,6 @@ class Backend:
         cell_datas = args[1]
         save_outputs = args[2]
 
-        dirname = os.path.dirname(notebook_path)
-        basename = os.path.basename(notebook_path)
-
         self.notebooks[notebook_path].cells = [
             jupytext.nbformat.from_dict(cell_data) for cell_data in cell_datas
         ]
@@ -76,10 +75,7 @@ class Backend:
                 cell.outputs.clear()
                 cell.execution_count = None
 
-        jupytext.write(
-            self.notebooks[notebook_path], os.path.join(dirname, "saved" + basename)
-        )
-        # jupytext.write(self.notebooks[notebook_path], notebook_path)
+        jupytext.write(self.notebooks[notebook_path], notebook_path)
 
     @pynvim.function("InitKernel")
     def init_kernel(self, args: Tuple[str]):
@@ -92,9 +88,10 @@ class Backend:
         notebook_path = args[0]
         self.nvim.out_write(f"Initializing kernel for {notebook_path}\n")
         self.kernels[notebook_path] = Kernel()
+        self.cell_ids[notebook_path] = dict()
 
-    @pynvim.function("ExecuteCell")
-    def execute_cell(self, args: Tuple[str, int, str]):
+    @pynvim.function("RunCell")
+    def run_cell(self, args: Tuple[str, int, str]):
         """
         Execute a cell in a .ipynb file
 
@@ -109,15 +106,18 @@ class Backend:
         code = args[2]
         # get kernel from the list, if kernel doesn't exist then initialize it
         self.kernels[notebook_path] = self.kernels.get(notebook_path, Kernel())
+        self.cell_ids[notebook_path] = self.cell_ids.get(notebook_path, dict())
         try:
             msg_id = self.kernels[notebook_path].execute(code)
-            threading.Thread(
-                target=self.update_cells, args=(notebook_path, cell_id, msg_id)
-            ).start()
+            self.cell_ids[notebook_path][msg_id] = cell_id
+            # threading.Thread(
+            #     target=self.update_cells, args=(notebook_path, cell_id, msg_id)
+            # ).start()
+            self.update_cells(notebook_path, cell_id)
         except Exception as e:
             self.nvim.out_write(f"{repr(e)}\n")
 
-    def update_cells(self, notebook_path: str, cell_id: int, msg_id: str):
+    def update_cells(self, notebook_path: str, cell_id: int):
         """
         Get jupyter kernel reponse and update cells in neovim.
 
@@ -170,32 +170,22 @@ class Backend:
         kernel_client = kernel.kernel_client
         while True:
             try:
-                # self.nvim.out_write("getting message\n")
-                # timeout will raise Empty error if no more message is available
                 msg = kernel_client.get_iopub_msg(timeout=5)
-                # self.nvim.out_write(f"got message, type {msg['msg_type']}\n")
-                # self.nvim.out_write(
-                # f"parent_header.msg_id {msg['parent_header']['msg_id']}\n"
-                # )
-                if msg["parent_header"]["msg_id"] != msg_id:
-                    continue
-
-                # self.nvim.out_write("sending msg back to lua\n")
+                msg_id = msg["parent_header"]["msg_id"]
+                cell_id = self.cell_ids[notebook_path][msg_id]
                 output = {"output_type": msg["msg_type"], **msg["content"]}
-                # self.nvim.lua._ipynb.update_cell_outputs(notebook_path, cell_id, output)
-
                 # must use async_call in a non-main thread
                 # https://pynvim.readthedocs.io/en/latest/usage/python-plugin-api.html#async-calls
-                self.nvim.async_call(
-                    self.nvim.lua._ipynb.update_cell_outputs,
-                    notebook_path,
-                    cell_id,
-                    output,
-                )
+                # self.nvim.async_call(
+                #     self.nvim.lua._ipynb.update_cell_outputs,
+                #     notebook_path,
+                #     cell_id,
+                #     output,
+                # )
+                self.nvim.lua._ipynb.update_cell_outputs(notebook_path, cell_id, output)
 
                 if msg["content"].get("execution_state") == "idle":
                     break
             except Exception as e:
-                # self.nvim.out_write(f"{repr(e)}\n")
                 self.nvim.async_call(self.nvim.out_write, f"{repr(e)}\n")
                 break

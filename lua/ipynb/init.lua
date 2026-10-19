@@ -54,12 +54,8 @@ local function update_cell_outputs(notebook_path, cell_id, output)
 	for _, cell in ipairs(notebook.cells) do
 		if cell.id == cell_id then
 			if output["output_type"] == "status" then
-				if output["execution_state"] == "busy" then
-					-- clear cell outputs
-					cell.outputs = {}
-				end
 			elseif output["output_type"] == "execute_input" then
-				cell.execution_count = output["execution_count"] and tonumber(output["execution_count"]) or vim.NIL
+				cell.execution_count = tostring(output["execution_count"])
 			else
 				table.insert(cell.outputs, output)
 			end

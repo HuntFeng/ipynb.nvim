@@ -10,7 +10,7 @@ end
 
 ---@class Cell
 ---@field cell_type "code" | "markdown"
----@field execution_count integer | vim.NIL
+---@field execution_count string
 ---@field source string
 ---@field outputs table
 ---@field metadata table
@@ -27,7 +27,7 @@ function Cell:new(cell_data)
 	cell.id = uid()
 	cell.range = cell_data["range"] or { -1, -1 }
 	cell.cell_type = cell_data["cell_type"]
-	cell.execution_count = cell_data["execution_count"]
+	cell.execution_count = cell_data["execution_count"] ~= vim.NIL and cell_data["execution_count"] or " "
 	cell.metadata = cell_data["metadata"] or vim.empty_dict()
 	cell.source = cell_data["source"] or ""
 	cell.outputs = cell_data["outputs"] or {}
@@ -43,7 +43,7 @@ function Cell:render_output(buf)
 
 	local virt_lines = {
 		{ { string.format("cell_id: %d, range: {%d, %d}", self.id, self.range[1], self.range[2]), "Comment" } },
-		{ { string.format("Out[%s]:", self.execution_count ~= vim.NIL and self.execution_count or " "), hl_group } },
+		{ { string.format("Out[%s]:", self.execution_count), hl_group } },
 	}
 	local images = {}
 	for _, output in ipairs(self.outputs) do
