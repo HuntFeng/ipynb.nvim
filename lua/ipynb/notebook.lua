@@ -62,9 +62,20 @@ function Notebook:set_buffer_content(lines)
 		return
 	end
 
+	table.insert(lines, 1, "") -- add empty line for undo
 	vim.api.nvim_buf_set_lines(self.buf, 0, -1, false, lines)
 	vim.api.nvim_buf_set_option(self.buf, "filetype", "markdown")
 	vim.api.nvim_buf_set_option(self.buf, "modified", false)
+	-- In order to make :undo a no-op immediately after the buffer is read, we
+	-- need to do this dance with 'undolevels'.  Actually discarding the undo
+	-- history requires performing a change after setting 'undolevels' to -1 and,
+	-- luckily, we have one we need to do (delete the extra line from the :r
+	-- command)
+	-- (Comment straight from goerz/jupytext.vim)
+	local levels = vim.o.undolevels
+	vim.opt_local.undolevels = -1
+	vim.api.nvim_command("silent 1delete")
+	vim.opt_local.undolevels = levels
 end
 
 ---@param cell_datas cell_data[]
@@ -267,10 +278,12 @@ function Notebook:setup_on_changedtree_handler()
 		--- @param end_row integer  edit range end (exclusive)
 		--- @param new_end_row integer after editing, end_row is now at new_end_row
 		on_lines = function(_, _, changedtick, start_row, end_row, new_end_row)
-			self:handle_removed_code_blocks()
-			self:handle_added_code_blocks()
-			self:update_code_cells()
-			self:update_markdown_cells()
+			vim.schedule(function()
+				self:handle_removed_code_blocks()
+				self:handle_added_code_blocks()
+				self:update_code_cells()
+				self:update_markdown_cells()
+			end)
 		end,
 	})
 end
