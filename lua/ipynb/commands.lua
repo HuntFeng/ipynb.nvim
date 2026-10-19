@@ -3,12 +3,8 @@ local commands = {}
 ---Hook commands to notebook class
 ---@param notebook Notebook
 function commands.init(notebook)
-	vim.api.nvim_buf_create_user_command(notebook.buf, "NBInit", function()
-		commands.init_notebook(notebook)
-	end, {})
-
 	vim.api.nvim_buf_create_user_command(notebook.buf, "NBStartKernel", function()
-		vim.fn.StartKernel(notebook.file)
+		commands.start_kernel(notebook)
 	end, {})
 
 	vim.api.nvim_buf_create_user_command(notebook.buf, "NBInterruptKernel", function()
@@ -69,7 +65,7 @@ function commands.init(notebook)
 end
 
 ---@param notebook Notebook
-function commands.init_notebook(notebook)
+function commands.start_kernel(notebook)
 	---@type table
 	local kernels = vim.fn.ListKernels()
 	if next(kernels) == nil then
@@ -162,6 +158,10 @@ end
 
 ---@param notebook Notebook
 function commands.run_cell(notebook)
+	if notebook.kernel_status == "stopped" then
+		commands.start_kernel(notebook)
+	end
+
 	local row = vim.fn.getcurpos()[2] - 1
 	for _, cell in ipairs(notebook.cells) do
 		if cell.cell_type == "code" and row >= cell.range[1] and row < cell.range[2] then
