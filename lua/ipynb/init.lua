@@ -53,6 +53,9 @@ local function setup(opts)
 		{ "<localleader>a", "<cmd>NBAddCellAbove<cr>", desc = "NBAddCellAbove" },
 		{ "<localleader>b", "<cmd>NBAddCellBelow<cr>", desc = "NBAddCellBelow" },
 		{ "<localleader>R", "<cmd>NBRunAndAddCellBelow<cr>", desc = "NBRunAndAddCellBelow" },
+		{ "<localleader>d", "<cmd>NBDeleteCell<cr>", desc = "NBDeleteCell" },
+		{ "<localleader>y", "<cmd>NBCopyCell<cr>", desc = "NBCopyCell" },
+		{ "<localleader>p", "<cmd>NBPasteCell<cr>", desc = "NBPasteCell" },
 	})
 
 	-- on save

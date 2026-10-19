@@ -7,6 +7,7 @@ local commands = require("ipynb.commands")
 ---@field buf integer
 ---@field file string
 ---@field cells Cell[]
+---@field copied_cell Cell | nil
 local Notebook = {}
 
 ---@param buf integer
@@ -17,6 +18,7 @@ function Notebook:new(buf, file)
 	setmetatable(notebook, self)
 	self.__index = self
 	notebook.cells = {}
+	notebook.copied_cell = nil
 	notebook.buf = buf
 	notebook.file = file
 	local results = vim.fn.LoadNotebook(file)
