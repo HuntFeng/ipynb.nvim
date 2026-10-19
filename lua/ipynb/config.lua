@@ -1,5 +1,5 @@
 local options = {
-	scale_factor = 1.0,
+	image_scale_factor = 1.0,
 	save_outputs = false,
 }
 

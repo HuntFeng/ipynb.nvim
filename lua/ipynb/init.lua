@@ -54,6 +54,7 @@ local function update_cell_outputs(notebook_path, cell_id, output)
 	for _, cell in ipairs(notebook.cells) do
 		if cell.id == cell_id then
 			if output["output_type"] == "status" then
+			-- do nothing
 			elseif output["output_type"] == "execute_input" then
 				cell.execution_count = tostring(output["execution_count"])
 			else
