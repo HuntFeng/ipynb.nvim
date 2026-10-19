@@ -8,7 +8,7 @@ local commands = require("ipynb.commands")
 ---@field file string
 ---@field cells Cell[]
 ---@field copied_cell Cell | nil
----@field kernel_status "stopped" | "idle" | "busy"
+---@field is_kernel_started boolean
 local Notebook = {}
 
 ---@param buf integer
@@ -22,7 +22,7 @@ function Notebook:new(buf, file)
 	notebook.copied_cell = nil
 	notebook.buf = buf
 	notebook.file = file
-	notebook.kernel_status = "stopped"
+	notebook.is_kernel_started = false
 	local results = vim.fn.LoadNotebook(file)
 	local lines = results[1]
 	local cell_datas = results[2]
