@@ -27,6 +27,10 @@ function commands.init(notebook)
 		commands.run_cell(notebook)
 	end, {})
 
+	vim.api.nvim_buf_create_user_command(notebook.buf, "NBRunAllCell", function()
+		commands.run_all_cell(notebook)
+	end, {})
+
 	vim.api.nvim_buf_create_user_command(notebook.buf, "NBEnterCellOutput", function()
 		commands.enter_cell_output(notebook)
 	end, {})
@@ -173,6 +177,20 @@ function commands.run_cell(notebook)
 			vim.fn.RunCell(notebook.file, cell.id, cell.source)
 			break
 		end
+	end
+end
+
+---@param notebook Notebook
+function commands.run_all_cell(notebook)
+	if not notebook.is_kernel_started then
+		commands.start_kernel(notebook)
+	end
+
+	for _, cell in ipairs(notebook.cells) do
+		cell.execution_count = "*"
+		cell.outputs = {}
+		cell:render_output(notebook.buf)
+		vim.fn.RunCell(notebook.file, cell.id, cell.source)
 	end
 end
 
