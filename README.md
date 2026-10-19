@@ -30,6 +30,7 @@ fixme:
 - [ ] cannot run code for newly added cell
 - [ ] cannot queue a cell for running, must wait until one finishes
 - [ ] cannot delete cells properly when executing code
+- [x] cannot correctly update tqdm progress bar
 
 todo:
 - [x] loading
